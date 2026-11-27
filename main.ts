@@ -20,14 +20,21 @@ import { join } from "node:path";
 
 const OUTPUT_DIR = process.env.MAKEFUN_OUTPUT_DIR || "/output";
 const OUTPUT_PATH = join(OUTPUT_DIR, "entry.png");
-const SOURCE_PATH = join(process.cwd(), "entry.png");
+// Resolve entry.png relative to this script's own directory, NOT the
+// working directory: the grader runs `node /bot/main.ts` from a cwd that
+// is not /bot, so a process.cwd() lookup fails there (exit 1).
+// import.meta.dirname is the script's directory on Node 22; fall back to
+// MAKEFUN_BOT_DIR (set by the grader) and then the working directory.
+const SCRIPT_DIR =
+  import.meta.dirname || process.env.MAKEFUN_BOT_DIR || process.cwd();
+const SOURCE_PATH = join(SCRIPT_DIR, "entry.png");
 
 // The PNG file signature: 89 50 4E 47 0D 0A 1A 0A.
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 function main(): void {
   if (!existsSync(SOURCE_PATH)) {
-    throw new Error(`entry.png not found in ${process.cwd()}`);
+    throw new Error(`entry.png not found in ${SCRIPT_DIR}`);
   }
   mkdirSync(OUTPUT_DIR, { recursive: true });
   copyFileSync(SOURCE_PATH, OUTPUT_PATH);
